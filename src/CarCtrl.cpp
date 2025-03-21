@@ -1,16 +1,16 @@
 #include <CarCtrl.hpp>
 
 namespace {
-	struct NullStream : public Stream{
+	struct NullStream : public Stream {
 		int available() { return 0; }
 		int peek() { return -1; }
 		int read() { return -1; }
-		size_t write(uint8_t){ return 1; }
-		void flush() { }
+		size_t write(uint8_t) { return 1; }
+		void flush() {}
 	} null_stream;
-}
+} // namespace
 
-Stream & CarCtrlBase::log() {
+Stream& CarCtrlBase::log() {
 	if (_log_client.connected()) return _log_client;
 	return null_stream;
 }
@@ -42,10 +42,14 @@ void CarCtrl::loop() {
 	}
 
 	if ((now & 0xFF) < 128) {
-		if (speed() < 0) setDisplayedColor({64, 64, 64});
-		else if (speed_down()) setDisplayedColor({64, 0, 0});
-		else if (speed() == 0) setDisplayedColor(color());
-		else setDisplayedColor({0, 0, 0});
+		if (speed() < 0)
+			setDisplayedColor({64, 64, 64});
+		else if (speed_down())
+			setDisplayedColor({64, 0, 0});
+		else if (speed() == 0)
+			setDisplayedColor(color());
+		else
+			setDisplayedColor({0, 0, 0});
 	} else {
 		setDisplayedColor(color());
 	}
@@ -81,7 +85,7 @@ void CarCtrl::start_engine(bool on) {
 	setHeadlights(on ? 40000 : 0);
 }
 
-void CarCtrlConfig::setConfig(const Config & conf) {
+void CarCtrlConfig::setConfig(const Config& conf) {
 	_config = conf;
 	if (_config.name[0] == 0) setConfigNameMAC();
 }
@@ -94,16 +98,18 @@ void CarCtrlConfig::setConfigNameMAC() {
 	String name;
 	std::array<uint8_t, 6> mac = _car.mac();
 	for (auto it = mac.rbegin(); it != mac.rend(); it++) name += String(*it, HEX);
-	strncpy(_config.name, name.c_str(), 12); 
+	strncpy(_config.name, name.c_str(), 12);
 	_config.name[12] = 0;
 }
 
 void CarCtrlConfig::setConfigName(String name) {
-	if (name.length() == 0) setConfigNameMAC();
-	else strncpy(_config.name, name.c_str(), sizeof(_config.name));
+	if (name.length() == 0)
+		setConfigNameMAC();
+	else
+		strncpy(_config.name, name.c_str(), sizeof(_config.name));
 }
 
-const char * CarCtrlConfig::configName() { return _config.name; }
+const char* CarCtrlConfig::configName() { return _config.name; }
 
 String CarCtrlConfig::hostname() { return String("CarNode-") + _config.name; }
 

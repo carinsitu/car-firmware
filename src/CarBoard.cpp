@@ -20,7 +20,7 @@ namespace {
 	IRrecv ir_recv(PIN_IR);
 	decode_results ir_result;
 	Max17261 battery;
-};
+}; // namespace
 
 void CarBoard::init() {
 	_throttleServo.attach(PIN_THROTTLE);
@@ -35,7 +35,7 @@ void CarBoard::init() {
 	EEPROM.begin(256);
 
 	Serial.begin(115200);
-	Serial.swap(); // Change uart mux
+	Serial.swap();		// Change uart mux
 	U0C0 |= BIT(UCTXI); // Invert TX signal
 
 	debugSerial.begin(76800);
@@ -65,12 +65,11 @@ void CarBoard::init() {
 	// FIXME: Tune this value according to our charge voltage
 	const uint16_t modelCFG = 0x8000;
 	battery.begin(
-			designCapacity,
-			iChgTerm,
-			vEmpty,
-			modelCFG,
-			&debugSerial
-		     );
+		designCapacity,
+		iChgTerm,
+		vEmpty,
+		modelCFG,
+		&debugSerial);
 }
 
 void CarBoard::loop() {
@@ -110,7 +109,7 @@ std::array<uint8_t, 6> CarBoard::mac() const {
 	return ret;
 }
 
-Stream & CarBoard::debug_serial() const {
+Stream& CarBoard::debug_serial() const {
 	return debugSerial;
 }
 
@@ -121,14 +120,13 @@ void CarBoard::setSteering(int16_t i_angle) {
 
 void CarBoard::setThrottle(int16_t i_speed) {
 	static int16_t i_current_speed = 0;
-	const int16_t value = (i_speed > 0) ? map(i_speed, 0, 32767, 1500-_throttle_start_fw, 1000) :
-	                      (i_speed < 0) ? map(i_speed, -32768, 0, 2000, 1500+_throttle_start_bw) :
-	                      1500;
+	const int16_t value = (i_speed > 0) ? map(i_speed, 0, 32767, 1500 - _throttle_start_fw, 1000) : (i_speed < 0) ? map(i_speed, -32768, 0, 2000, 1500 + _throttle_start_bw)
+																												  : 1500;
 
 	// Workaround: Brushed motors can have difficulties to start to rotate
 	// To workaround this inertial effect, we overshoot during a short time, then set desired value
 	// FIXME: Implement this in a non-blocking way
-	if((i_current_speed == 0) && (i_speed != 0)) {
+	if ((i_current_speed == 0) && (i_speed != 0)) {
 		const int16_t i_value = i_speed > 0 ? 1000 : 2000;
 		_throttleServo.writeMicroseconds(i_value);
 		delay(20);

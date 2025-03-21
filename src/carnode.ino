@@ -28,4 +28,3 @@ void loop() {
 	mailbox.loop();
 	status_caster.loop();
 }
-

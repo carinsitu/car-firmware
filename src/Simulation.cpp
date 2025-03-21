@@ -17,7 +17,7 @@ void Simulation::loop() {
 void Simulation::update() {
 	// Not accurate, but interesting enough
 	const constexpr float Kt = 0.005;
-	const constexpr float Ks = M_PI/6;
+	const constexpr float Ks = M_PI / 6;
 	const constexpr float Ka = 6;
 	const constexpr float dt = 0.05;
 

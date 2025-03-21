@@ -2,7 +2,7 @@
 #include <ArduinoOTA.h>
 
 void OTAUpdater::init() {
-	auto & log = _car.log();
+	auto& log = _car.log();
 	ArduinoOTA.setHostname(_car.hostname().c_str());
 	ArduinoOTA.setPasswordHash("6f67154c3512b8de72af2e635be08f17");
 	ArduinoOTA.setRebootOnSuccess(true);
@@ -20,8 +20,8 @@ void OTAUpdater::init() {
 	});
 	ArduinoOTA.onError([&log](ota_error_t error) {
 		log.printf("OTA: Error[%u]: ", error);
-		log.println([](ota_error_t error){
-			switch(error) {
+		log.println([](ota_error_t error) {
+			switch (error) {
 				case OTA_AUTH_ERROR: return "Auth Failed";
 				case OTA_BEGIN_ERROR: return "Begin Failed";
 				case OTA_CONNECT_ERROR: return "Connect Failed";
@@ -39,4 +39,3 @@ void OTAUpdater::init() {
 void OTAUpdater::loop() {
 	ArduinoOTA.handle();
 }
-

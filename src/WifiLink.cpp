@@ -27,7 +27,7 @@ void WifiLink::loop() {
 
 void WifiLink::print_status() {
 	_car.log().print("Wifi status: ");
-	_car.log().println([]{
+	_car.log().println([] {
 		switch (WiFi.status()) {
 			case WL_CONNECTED: return "Connected to a WiFi network";
 			case WL_NO_SHIELD: return "No WiFi shield is present";
@@ -42,4 +42,3 @@ void WifiLink::print_status() {
 		return "";
 	}());
 }
-

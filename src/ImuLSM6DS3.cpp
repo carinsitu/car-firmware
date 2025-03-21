@@ -10,7 +10,7 @@ namespace {
 
 	const constexpr uint8_t OUTX_L_G = 0x22;
 	const constexpr uint8_t OUTX_L_XL = 0x28;
-}
+} // namespace
 
 uint8_t ImuLSM6DS3::readRegister(uint8_t address) {
 	uint8_t ret;
@@ -18,7 +18,7 @@ uint8_t ImuLSM6DS3::readRegister(uint8_t address) {
 	return ret;
 }
 
-void ImuLSM6DS3::readRegisters(uint8_t address, uint8_t * data, size_t length) {
+void ImuLSM6DS3::readRegisters(uint8_t address, uint8_t* data, size_t length) {
 	_wire.beginTransmission(_address);
 	_wire.write(address);
 	_wire.endTransmission(false);
@@ -40,15 +40,13 @@ void ImuLSM6DS3::init() {
 
 	if (_found) {
 		writeRegister(CTRL1_XL,
-			(4 /* ODR: 104Hz */ << 4) |
-			(2 /* FullScale ±4g */ << 2) |
-			(3 /* Bandwidth 50Hz */ << 0)
-		);
+					  (4 /* ODR: 104Hz */ << 4) |
+						  (2 /* FullScale ±4g */ << 2) |
+						  (3 /* Bandwidth 50Hz */ << 0));
 		writeRegister(CTRL2_G,
-			(4 /* ODR: 104Hz */ << 4) |
-			(2 /* FullScale 500dps */ << 2) |
-			(0 /* FS_125 disabled */ << 1)
-		);
+					  (4 /* ODR: 104Hz */ << 4) |
+						  (2 /* FullScale 500dps */ << 2) |
+						  (0 /* FS_125 disabled */ << 1));
 	}
 }
 
@@ -75,4 +73,3 @@ bool ImuLSM6DS3::gyroscopeDataReady() {
 	if (!_found) return false;
 	return (readRegister(STATUS_REG) & 0x02) != 0;
 }
-

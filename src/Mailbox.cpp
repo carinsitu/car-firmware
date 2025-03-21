@@ -39,7 +39,7 @@ void Mailbox::readTcp() {
 void Mailbox::processPacket(packet_t packet, uint8_t len) {
 	if (len < 5) return;
 	if (packet[0] != 'C' || packet[1] != 'I' || packet[2] != 'S') return;
-	
+
 	uint8_t pass_lvl = packet[3];
 	_packet_head = packet.begin() + 4;
 	auto packet_end = packet.begin() + len;
@@ -47,11 +47,11 @@ void Mailbox::processPacket(packet_t packet, uint8_t len) {
 		return;
 	} else if (pass_lvl > 0) {
 		if (len < 10) return;
-		auto & pass = _password[pass_lvl-1];
+		auto& pass = _password[pass_lvl - 1];
 		if (!std::equal(pass.begin(), pass.end(), _packet_head)) pass_lvl = 0;
 		_packet_head += 6;
 	} else {
-		pass_lvl = (_password[0] == std::array<uint8_t, 6>{0,0,0,0,0,0}) ? 1 : 0;
+		pass_lvl = (_password[0] == std::array<uint8_t, 6>{0, 0, 0, 0, 0, 0}) ? 1 : 0;
 	}
 
 	while (_packet_head != packet_end) {
@@ -77,7 +77,7 @@ uint8_t Mailbox::msg_arg_u8() {
 	return *(_packet_head++);
 }
 
-int16_t Mailbox::msg_arg_i16() { 
+int16_t Mailbox::msg_arg_i16() {
 	const int16_t msb = *(_packet_head++);
 	return msb << 8 | *(_packet_head++);
 }
@@ -87,8 +87,9 @@ uint16_t Mailbox::msg_arg_u16() {
 	return msb << 8 | *(_packet_head++);
 }
 
-template<typename T> void Mailbox::msg_arg_copy(uint8_t nb, T it) {
-	std::copy(_packet_head, _packet_head+nb, it);
+template <typename T>
+void Mailbox::msg_arg_copy(uint8_t nb, T it) {
+	std::copy(_packet_head, _packet_head + nb, it);
 }
 
 void Mailbox::on_msg_open_tcp_link() {
@@ -168,4 +169,3 @@ void Mailbox::on_msg_set_color() {
 	msg_arg_copy(3, color.begin());
 	_car.setColor(color);
 }
-
