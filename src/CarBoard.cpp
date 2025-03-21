@@ -68,7 +68,8 @@ void CarBoard::init() {
 			designCapacity,
 			iChgTerm,
 			vEmpty,
-			modelCFG
+			modelCFG,
+			&debugSerial
 		     );
 }
 
@@ -99,6 +100,8 @@ void CarBoard::loop() {
 		ir_recv.resume();
 	}
 	if (now - _ir_time >= 200) _ir_value = 0;
+
+	battery.process();
 }
 
 std::array<uint8_t, 6> CarBoard::mac() const {

@@ -34,9 +34,9 @@ Note: A fully featured dedicated board exists for this project to easily convert
 | D8                 | 15           | VTX                      | SmartAudio pin                       |
 
  - [0] APA106 LEDs behind a level shifter (LVC1T45)
- - [1] Selected, but not tested, I²C devices are:
-   * Battery gauge (MAX17205)
-   * IMU (LSM6DS33)
+ - [1] I²C devices:
+   * Battery gauge (MAX17261) - Monitors battery voltage and state of charge
+   * IMU (LSM6DS3) - 6-axis inertial measurement unit with accelerometer and gyroscope
 
 ## Development environment
 

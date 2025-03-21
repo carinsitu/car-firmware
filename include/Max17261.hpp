@@ -2,6 +2,7 @@
 #define Max17261_H
 
 #include <Max1726x.hpp>
+#include <Stream.h>
 
 class Max17261 {
 public:
@@ -11,12 +12,14 @@ public:
     uint16_t designCapacity,
     uint16_t iChgTerm,
     uint16_t vEmpty,
-    uint16_t modelCFG);
+    uint16_t modelCFG,
+    Stream* debugStream = nullptr);
   void process();
 
   int16_t readRemainingCapacity();
   int16_t readStateOfCharge();
   uint16_t read(const uint8_t reg);
+
 private:
   bool write(const uint8_t reg, const uint16_t value);
   bool writeAndVerify(const uint8_t reg, const uint16_t value);
@@ -31,6 +34,7 @@ private:
 
   uint8_t _status;
   uint16_t _hibcfg;
+  Stream* _debugStream;
 };
 
 #endif // MAX17261_H
