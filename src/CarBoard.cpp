@@ -39,7 +39,7 @@ void CarBoard::init() {
 	U0C0 |= BIT(UCTXI); // Invert TX signal
 
 	debugSerial.begin(76800);
-	debugSerial.println("CarInSitu");
+	debugSerial.printf("\n\nCarInSitu %s\n", FIRMWARE_VERSION);
 
 	strip.Begin();
 	setColor(0, 0, 0);
