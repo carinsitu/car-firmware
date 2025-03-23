@@ -162,5 +162,14 @@ uint16_t CarBoard::batteryLevel_ADC() const {
 }
 
 int16_t CarBoard::batterySOC() const {
-	return battery.readStateOfCharge();
+	const int16_t soc = battery.readStateOfCharge();
+	if (soc < 0) {
+		return soc;
+	}
+	if (soc < 256 * 20) {
+		return 0;
+	}
+	// We keep 20% of the battery capacity as a safety margin as we notice that the battery SoC drops
+	// below 20% before the car is powered off.
+	return ((float)soc - (256 * 20)) * (100.0 / 80.0);
 }
