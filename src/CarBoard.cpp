@@ -68,8 +68,7 @@ void CarBoard::init() {
 		designCapacity,
 		iChgTerm,
 		vEmpty,
-		modelCFG,
-		&debugSerial);
+		modelCFG);
 }
 
 void CarBoard::loop() {
