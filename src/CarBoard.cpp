@@ -60,7 +60,7 @@ void CarBoard::init() {
 	const uint16_t iChgTerm = 0x0640; // (250mA on 10mΩ)
 	// VE: Empty Voltage Target, during load
 	// VR: Recovery voltage
-	const uint16_t vEmpty = 0xB961; // VE/VR: 0xAA61 → 3.4V/3.88V (0xA561 → 3.3V/3.88V (default))
+	const uint16_t vEmpty = 0xA761; // VE/VR: 0xAA61 → 3.4V/3.88V (0xA561 → 3.3V/3.88V (default))
 	// In typical cases, if charge voltage > 4,275 then 0x8400 else 0x8000
 	// FIXME: Tune this value according to our charge voltage
 	const uint16_t modelCFG = 0x8000;
