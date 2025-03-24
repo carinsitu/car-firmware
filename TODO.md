@@ -1,2 +1,5 @@
- - Reintroduce yield() calls to improve network performances
- - Prevent OTA to be processed when _engine_ is on (mainly to improve network performances during race)
+- Display player color
+- Allow server to request firmware version
+- Reduce max speed on low battery
+- Reintroduce yield() calls to improve network performances
+- Prevent OTA to be processed when _engine_ is on (mainly to improve network performances during race)
