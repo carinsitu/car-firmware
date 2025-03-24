@@ -6,21 +6,206 @@
 #include <NeoPixelBus.h>
 #include <IRrecv.h>
 
-namespace {
-	constexpr const int PIN_DEBUG_RX = 3;
-	constexpr const int PIN_DEBUG_TX = 1;
-	constexpr const int PIN_THROTTLE = 14;
-	constexpr const int PIN_STEERING = 0;
-	constexpr const int PIN_HEADLIGHTS = 16;
-	constexpr const int PIN_IR = 12;
+// Pin definitions
+constexpr const int PIN_DEBUG_RX = 3;
+constexpr const int PIN_DEBUG_TX = 1;
+constexpr const int PIN_THROTTLE = 14;
+constexpr const int PIN_STEERING = 0;
+constexpr const int PIN_HEADLIGHTS = 16;
+constexpr const int PIN_IR = 12;
 
-	SoftwareSerial debugSerial(PIN_DEBUG_RX, PIN_DEBUG_TX);
-	NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart1800KbpsMethod> strip(/* length */ 1);
-	ImuLSM6DS3 imu(Wire);
-	IRrecv ir_recv(PIN_IR);
-	decode_results ir_result;
-	Max17261 battery;
-}; // namespace
+// Global objects
+SoftwareSerial debugSerial(PIN_DEBUG_RX, PIN_DEBUG_TX);
+NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart1800KbpsMethod> strip(/* length */ 1);
+ImuLSM6DS3 imu(Wire);
+IRrecv ir_recv(PIN_IR);
+decode_results ir_result;
+Max17261 battery;
+
+// Add a byte to the circular buffer
+void CarBoard::addToBuffer(uint8_t byte) {
+	size_t nextHead = (_bufferHead + 1) % SERIAL_BUFFER_SIZE;
+	if (nextHead != _bufferTail) {
+		_serialBuffer[_bufferHead] = byte;
+		_bufferHead = nextHead;
+	}
+	// If buffer is full, byte is lost
+}
+
+// Get a byte from the circular buffer, returns -1 if buffer is empty
+int CarBoard::getFromBuffer() {
+	if (_bufferHead == _bufferTail) {
+		return -1; // Buffer empty
+	}
+	uint8_t byte = _serialBuffer[_bufferTail];
+	_bufferTail = (_bufferTail + 1) % SERIAL_BUFFER_SIZE;
+	return byte;
+}
+
+// Process a byte according to MSP protocol
+void CarBoard::processMSPByte(uint8_t c) {
+	switch (_mspState) {
+		case MSPState::IDLE:
+			if (c == '$') {
+				_mspState = MSPState::HEADER_START;
+				debugSerial.println("\nMSP: Start");
+			} else {
+				debugSerial.printf("x%02X ", c); // Print non-MSP bytes as hex
+			}
+			break;
+
+		case MSPState::HEADER_START:
+			if (c == 'M') {
+				_mspState = MSPState::HEADER_M;
+				debugSerial.println("MSP: M received");
+			} else {
+				_mspState = MSPState::IDLE;
+				debugSerial.printf("MSP: Invalid char after $: %02X\n", c);
+			}
+			break;
+
+		case MSPState::HEADER_M:
+			if (c == '<') {
+				_mspState = MSPState::HEADER_ARROW;
+				debugSerial.println("MSP: < received");
+			} else {
+				_mspState = MSPState::IDLE;
+				debugSerial.printf("MSP: Invalid char after M: %02X\n", c);
+			}
+			break;
+
+		case MSPState::HEADER_ARROW:
+			_mspDataSize = c;
+			_mspChecksum = c; // Init checksum
+			_mspReceived = 0;
+			_mspState = MSPState::HEADER_SIZE;
+			debugSerial.printf("MSP: Size: %d\n", _mspDataSize);
+			break;
+
+		case MSPState::HEADER_SIZE:
+			_mspCommand = c;
+			_mspChecksum ^= c;
+			_mspState = (_mspDataSize > 0) ? MSPState::DATA : MSPState::CHECKSUM;
+			debugSerial.printf("MSP: Command: %d\n", _mspCommand);
+			if (_mspDataSize == 0) {
+				debugSerial.println("MSP: No data, waiting for checksum");
+			}
+			break;
+
+		case MSPState::HEADER_CMD: // Add missing case
+			// This state is not used, but added to silence warning
+			_mspState = MSPState::IDLE;
+			debugSerial.println("MSP: Invalid state HEADER_CMD");
+			break;
+
+		case MSPState::DATA:
+			_mspChecksum ^= c;
+			if (_mspReceived < sizeof(_mspData)) {
+				_mspData[_mspReceived] = c;
+				debugSerial.printf("MSP: Data[%d]: %02X\n", _mspReceived, c);
+				_mspReceived++;
+			}
+			if (_mspReceived >= _mspDataSize) {
+				_mspState = MSPState::CHECKSUM;
+				debugSerial.println("MSP: Data complete, waiting for checksum");
+			}
+			break;
+
+		case MSPState::CHECKSUM:
+			if (_mspChecksum == c) {
+				// Valid MSP message received
+				debugSerial.printf("\nMSP: Valid message cmd %d, size %d: ", _mspCommand, _mspDataSize);
+				for (uint8_t i = 0; i < _mspReceived; i++) {
+					debugSerial.printf("%02X ", _mspData[i]);
+				}
+				debugSerial.println();
+
+				// Interpret specific MSP messages
+				interpretMSPMessage();
+			} else {
+				debugSerial.printf("\nMSP: Checksum error: got %02X, calculated %02X\n", c, _mspChecksum);
+			}
+			_mspState = MSPState::IDLE;
+			break;
+	}
+}
+
+// Interpret received MSP message based on command
+void CarBoard::interpretMSPMessage() {
+	debugSerial.printf("MSP: Interpreting command %d\n", _mspCommand);
+
+	switch (_mspCommand) {
+		case 1: // MSP_API_VERSION
+			debugSerial.println("MSP: Command is API_VERSION");
+			if (_mspReceived >= 3) {
+				debugSerial.printf("MSP: API Version: %d.%d.%d\n",
+								   _mspData[0], _mspData[1], _mspData[2]);
+			} else {
+				debugSerial.printf("MSP: Invalid API_VERSION data length: %d (expected 3+)\n", _mspReceived);
+			}
+			break;
+
+		case 2: // MSP_FC_VARIANT
+			debugSerial.println("MSP: Command is FC_VARIANT");
+			if (_mspReceived >= 4) {
+				char fcVariant[5];
+				memcpy(fcVariant, _mspData, 4);
+				fcVariant[4] = '\0';
+				debugSerial.printf("MSP: FC Variant: %s\n", fcVariant);
+			} else {
+				debugSerial.printf("MSP: Invalid FC_VARIANT data length: %d (expected 4+)\n", _mspReceived);
+			}
+			break;
+
+		case 3: // MSP_FC_VERSION
+			debugSerial.println("MSP: Command is FC_VERSION");
+			if (_mspReceived >= 3) {
+				debugSerial.printf("MSP: FC Version: %d.%d.%d\n",
+								   _mspData[0], _mspData[1], _mspData[2]);
+			} else {
+				debugSerial.printf("MSP: Invalid FC_VERSION data length: %d (expected 3+)\n", _mspReceived);
+			}
+			break;
+
+		case 4: // MSP_BOARD_INFO
+			debugSerial.println("MSP: Command is BOARD_INFO");
+			if (_mspReceived >= 6) {
+				char boardName[5];
+				memcpy(boardName, _mspData, 4);
+				boardName[4] = '\0';
+				debugSerial.printf("MSP: Board: %s, version: %d\n",
+								   boardName, _mspData[4]);
+			} else {
+				debugSerial.printf("MSP: Invalid BOARD_INFO data length: %d (expected 6+)\n", _mspReceived);
+			}
+			break;
+
+		case 10: // MSP_NAME
+			debugSerial.println("MSP: Command is NAME");
+			if (_mspReceived > 0) {
+				char name[65];
+				size_t len = (_mspReceived < 64) ? _mspReceived : 64;
+				memcpy(name, _mspData, len);
+				name[len] = '\0';
+				debugSerial.printf("MSP: Device name: %s\n", name);
+			} else {
+				debugSerial.println("MSP: NAME data is empty");
+			}
+			break;
+
+		case 101: // MSP_STATUS
+			debugSerial.println("MSP: Command is STATUS");
+			// Prepare and send a response with status information
+			sendMSPResponse(_mspCommand);
+			break;
+
+			// Add more command interpretations as needed
+
+		default:
+			debugSerial.printf("MSP: Unknown command %d\n", _mspCommand);
+			break;
+	}
+}
 
 void CarBoard::init() {
 	_throttleServo.attach(PIN_THROTTLE);
@@ -69,6 +254,11 @@ void CarBoard::init() {
 		iChgTerm,
 		vEmpty,
 		modelCFG);
+
+	// Send MSP_API_VERSION request to get VTX protocol version
+	mspRequestApiVersion();
+
+	debugSerial.println("VTX MSP request sent");
 }
 
 void CarBoard::loop() {
@@ -77,6 +267,21 @@ void CarBoard::loop() {
 		_batt_adc_time = now;
 		_batt_adc = analogRead(0);
 	}
+
+	// Read incoming data from Serial and store in buffer
+	while (Serial.available()) {
+		addToBuffer(Serial.read());
+	}
+
+	// Process buffered data through MSP parser
+	while (debugSerial.availableForWrite()) {
+		int byte = getFromBuffer();
+		if (byte == -1) {
+			break; // Buffer empty
+		}
+		processMSPByte(byte);
+	}
+
 	if (now - _imu_sample_time >= 10) {
 		_imu_sample_time = now;
 		auto imu2car_coord = [](auto vec) {
@@ -171,4 +376,66 @@ int16_t CarBoard::batterySOC() const {
 	// We keep 20% of the battery capacity as a safety margin as we notice that the battery SoC drops
 	// below 20% before the car is powered off.
 	return ((float)soc - (256 * 20)) * (100.0 / 80.0);
+}
+
+void CarBoard::sendMSPRequest(uint8_t command, const uint8_t* data, size_t dataSize) {
+	// MSP protocol: $M<[data_length][command][data][checksum]
+	debugSerial.printf("\nMSP: Sending command %d with %d bytes of data\n", command, dataSize);
+
+	Serial.write('$');
+	Serial.write('M');
+	Serial.write('<');
+
+	uint8_t checksum = 0;
+
+	// Data length
+	Serial.write(dataSize);
+	checksum ^= dataSize;
+	debugSerial.printf("MSP TX: $M< len=%d ", dataSize);
+
+	// Command
+	Serial.write(command);
+	checksum ^= command;
+	debugSerial.printf("cmd=%d ", command);
+
+	// Data
+	if (dataSize > 0) {
+		debugSerial.printf("data=[");
+		for (size_t i = 0; i < dataSize; i++) {
+			Serial.write(data[i]);
+			checksum ^= data[i];
+			debugSerial.printf("%02X ", data[i]);
+		}
+		debugSerial.printf("] ");
+	}
+
+	// Checksum
+	Serial.write(checksum);
+	debugSerial.printf("crc=%02X\n", checksum);
+}
+
+// Common MSP commands:
+// 1  - MSP_API_VERSION - Get API version
+// 2  - MSP_FC_VARIANT  - Get flight controller variant
+// 3  - MSP_FC_VERSION  - Get flight controller version
+// 4  - MSP_BOARD_INFO  - Get board info
+// 5  - MSP_BUILD_INFO  - Get build info
+// 10 - MSP_NAME        - Get device name
+// 11 - MSP_SET_NAME    - Set device name
+
+// Helper methods for common MSP commands
+void CarBoard::mspRequestApiVersion() {
+	sendMSPRequest(1); // MSP_API_VERSION
+}
+
+void CarBoard::mspRequestBoardInfo() {
+	sendMSPRequest(4); // MSP_BOARD_INFO
+}
+
+void CarBoard::mspRequestName() {
+	sendMSPRequest(10); // MSP_NAME
+}
+
+void CarBoard::mspSetName(const char* name, size_t nameLength) {
+	sendMSPRequest(11, reinterpret_cast<const uint8_t*>(name), nameLength); // MSP_SET_NAME
 }

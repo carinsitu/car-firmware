@@ -8,6 +8,21 @@
 #include <SoftwareSerial.h>
 #include <Servo.h>
 
+// External declarations
+extern SoftwareSerial debugSerial;
+
+// MSP decoding states
+enum class MSPState {
+	IDLE,
+	HEADER_START,      // $ received
+	HEADER_M,          // M received
+	HEADER_ARROW,      // > received
+	HEADER_SIZE,       // Size received
+	HEADER_CMD,        // Command received
+	DATA,              // Receiving data
+	CHECKSUM           // Checksum received
+};
+
 class CarBoard {
 	private:
 		Servo _throttleServo;
@@ -27,6 +42,32 @@ class CarBoard {
 		uint16_t _steering_right = 1000;
 		uint16_t _throttle_start_fw = 0;
 		uint16_t _throttle_start_bw = 0;
+		
+		// MSP protocol handling
+		MSPState _mspState = MSPState::IDLE;
+		uint8_t _mspDataSize = 0;
+		uint8_t _mspCommand = 0;
+		uint8_t _mspChecksum = 0;
+		uint8_t _mspReceived = 0;
+		uint8_t _mspData[64];  // Buffer for MSP data
+		
+		// Serial buffer
+		static constexpr const size_t SERIAL_BUFFER_SIZE = 256;
+		uint8_t _serialBuffer[SERIAL_BUFFER_SIZE];
+		size_t _bufferHead = 0;
+		size_t _bufferTail = 0;
+		
+		// Add a byte to the circular buffer
+		void addToBuffer(uint8_t byte);
+		
+		// Get a byte from the circular buffer, returns -1 if buffer is empty
+		int getFromBuffer();
+		
+		// Process a byte according to MSP protocol
+		void processMSPByte(uint8_t c);
+		
+		// Interpret received MSP message based on command
+		void interpretMSPMessage();
 
 	public:
 		void init();
@@ -63,6 +104,18 @@ class CarBoard {
 		std::array<int16_t, 3> imuGyroscopeData() const { return _imu_g; }
 
 		uint8_t ir_value() const { return _ir_value; }
+		
+		// Send an MSP request to the VTX
+		void sendMSPRequest(uint8_t command, const uint8_t* data = nullptr, size_t dataSize = 0);
+		
+		// Send an MSP response to a received command
+		void sendMSPResponse(uint8_t command);
+		
+		// Helper methods for common MSP commands
+		void mspRequestApiVersion();
+		void mspRequestBoardInfo();
+		void mspRequestName();
+		void mspSetName(const char* name, size_t nameLength);
 };
 
 #endif
