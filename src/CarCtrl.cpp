@@ -43,15 +43,15 @@ void CarCtrl::loop() {
 
 	if ((now & 0xFF) < 128) {
 		if (speed() < 0)
-			setDisplayedColor({64, 64, 64});
+			setRearColor({64, 64, 64});
 		else if (speed_down())
-			setDisplayedColor({64, 0, 0});
+			setRearColor({64, 0, 0});
 		else if (speed() == 0)
-			setDisplayedColor(color());
+			setRearColor(color());
 		else
-			setDisplayedColor({0, 0, 0});
+			setRearColor({0, 0, 0});
 	} else {
-		setDisplayedColor(color());
+		setRearColor(color());
 	}
 
 	WiFiClient client = _log_server.accept();
@@ -190,20 +190,20 @@ uint16_t CarCtrlHeadlights::headlightsPower() const {
 	return _headlights_pwr;
 }
 
-void CarCtrlRearlight::setDisplayedColor(const color_t c) {
+void CarCtrlRearlight::setRearColor(const color_t c) {
 	if (_shutdown) return;
-	_color_set = c;
+	_rear_color = c;
 	_car.setColor(c[0], c[1], c[2]);
 }
 
-void CarCtrlRearlight::setColor(const color_t c) {
+CarCtrlBase::color_t CarCtrlRearlight::rear_color() const {
+	return _rear_color;
+}
+
+void CarCtrlBase::setColor(const color_t c) {
 	_color = c;
 }
 
-CarCtrlRearlight::color_t CarCtrlRearlight::color() const {
+CarCtrlBase::color_t CarCtrlBase::color() const {
 	return _color;
-}
-
-CarCtrlRearlight::color_t CarCtrlRearlight::displayed_color() const {
-	return _color_set;
 }

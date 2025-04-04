@@ -6,14 +6,20 @@
 #include <ESP8266WiFi.h>
 
 class CarCtrlBase {
+	public:
+		typedef std::array<uint8_t, 3> color_t;
+
 	protected:
 		CarBoard _car;
 		WiFiServer _log_server{23};
 		WiFiClient _log_client;
 		bool _shutdown = false;
+		color_t _color = {255, 255, 255};
 
 	public:
 		Stream & log();
+		void setColor(const color_t c);
+		color_t color() const;
 };
 
 class CarCtrlConfig : virtual public CarCtrlBase {
@@ -95,20 +101,14 @@ class CarCtrlHeadlights : virtual public CarCtrlBase {
 };
 
 class CarCtrlRearlight : virtual public CarCtrlBase {
-	public:
-		typedef std::array<uint8_t, 3> color_t;
-
 	private:
-		color_t _color = {255, 0, 255};
-		color_t _color_set = {0, 0, 0};
+		color_t _rear_color = {0, 0, 0};
 
 	protected:
-		void setDisplayedColor(const color_t c);
+		void setRearColor(const color_t c);
 
 	public:
-		void setColor(const color_t c);
-		color_t color() const;
-		color_t displayed_color() const;
+		color_t rear_color() const;
 };
 
 class CarCtrlLL : virtual public CarCtrlBase {

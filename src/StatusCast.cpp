@@ -70,10 +70,10 @@ void StatusCast::loop() {
 				msg[len++] = color[0];
 				msg[len++] = color[1];
 				msg[len++] = color[2];
-				auto displayed_color = _car.displayed_color();
-				msg[len++] = displayed_color[0];
-				msg[len++] = displayed_color[1];
-				msg[len++] = displayed_color[2];
+				auto rear_color = _car.rear_color();
+				msg[len++] = rear_color[0];
+				msg[len++] = rear_color[1];
+				msg[len++] = rear_color[2];
 				break;
 			}
 			case STATUS_BATTERY: {
