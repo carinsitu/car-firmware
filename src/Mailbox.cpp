@@ -64,6 +64,9 @@ void Mailbox::processPacket(packet_t packet, uint8_t len) {
 		if (pass_lvl >= it->min_lvl) {
 			_packet_head++;
 			std::invoke(it->handler, this);
+		} else {
+			_car.log().printf("WARNING: Command 0x%02X rejected - Insufficient privilege (required: %d, provided: %d)\n",
+							  *_packet_head, it->min_lvl, pass_lvl);
 		}
 		_packet_head = packet_start + it->len + 1;
 	}
@@ -114,6 +117,7 @@ void Mailbox::on_msg_pilot() {
 void Mailbox::on_msg_headlights() {
 	const int16_t value = msg_arg_i16();
 	_car.setHeadlights(value);
+	_car.log().printf("DEBUG: Received headlights command - value: %d\n", value);
 }
 
 void Mailbox::on_msg_save_config() {
@@ -167,5 +171,6 @@ void Mailbox::on_msg_invert_throttle() {
 void Mailbox::on_msg_set_color() {
 	std::array<uint8_t, 3> color;
 	msg_arg_copy(3, color.begin());
+	_car.log().printf("DEBUG: Received set_color command - RGB: %d,%d,%d\n", color[0], color[1], color[2]);
 	_car.setColor(color);
 }
