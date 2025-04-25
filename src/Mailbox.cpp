@@ -174,3 +174,9 @@ void Mailbox::on_msg_set_color() {
 	_car.log().printf("DEBUG: Received set_color command - RGB: %d,%d,%d\n", color[0], color[1], color[2]);
 	_car.setColor(color);
 }
+
+void Mailbox::on_msg_get_version() {
+	// Request version status to be sent with the next broadcast
+	_car.statusCast().requestVersion();
+	_car.log().printf("DEBUG: Version status requested\n");
+}

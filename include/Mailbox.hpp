@@ -57,6 +57,7 @@ class Mailbox {
 		void on_msg_invert_steering();
 		void on_msg_invert_throttle();
 		void on_msg_set_color();
+		void on_msg_get_version();
 
 		static constexpr const std::array handlers {
 			handler_info{0x01, 2, 2, &Mailbox::on_msg_open_tcp_link},
@@ -76,6 +77,7 @@ class Mailbox {
 			handler_info{0x31, 1, 2, &Mailbox::on_msg_invert_steering},
 			handler_info{0x32, 1, 2, &Mailbox::on_msg_invert_throttle},
 			handler_info{0x33, 3, 2, &Mailbox::on_msg_set_color},
+			handler_info{0x34, 0, 0, &Mailbox::on_msg_get_version},
 		};
 
 	public:

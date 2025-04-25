@@ -19,6 +19,9 @@ void setup() {
 	ota.init();
 	mailbox.init();
 	status_caster.init();
+
+	// Set StatusCast reference in CarCtrl
+	car.setStatusCast(&status_caster);
 }
 
 void loop() {

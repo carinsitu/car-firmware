@@ -5,6 +5,9 @@
 #include <Simulation.hpp>
 #include <ESP8266WiFi.h>
 
+// Forward declaration
+class StatusCast;
+
 class CarCtrlBase {
 	public:
 		typedef std::array<uint8_t, 3> color_t;
@@ -122,12 +125,22 @@ class CarCtrlLL : virtual public CarCtrlBase {
 };
 
 class CarCtrl : public CarCtrlConfig, public CarCtrlPilot, public CarCtrlHeadlights, public CarCtrlRearlight, public CarCtrlLL {
+	private:
+		// Reference to external StatusCast instance
+		StatusCast* _status_cast = nullptr;
+		
 	public:
 		void init();
 		void loop();
 
 		void start_engine(bool on);
 		void shutdown();
+		
+		// Set the StatusCast reference
+		void setStatusCast(StatusCast* status_cast) { _status_cast = status_cast; }
+		
+		// Access the StatusCast (may be null if not set)
+		StatusCast& statusCast() { return *_status_cast; }
 };
 
 #endif
