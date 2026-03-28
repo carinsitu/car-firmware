@@ -2,9 +2,9 @@
 
 if [ "$1" == "all" ]
 then
-	echo "Upload to all detected"
+	echo "Upload to all detected cars"
 	CARS=$(avahi-browse -t _arduino._tcp | grep CarNode | awk -F' ' '{ print $4 }')
-	[ "$CARS" == "" ] && (echo "No car found."; exit 1) || echo "Cars: $CARS"
+	[ "$CARS" == "" ] && (echo "No cars found."; exit 1) || echo "Cars: $CARS"
 	for car in $CARS
 	do
 		PLATFORMIO_UPLOAD_FLAGS=--auth=CarInSituOTA pio run --target upload --upload-port ${car}.local
