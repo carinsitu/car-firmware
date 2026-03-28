@@ -36,7 +36,7 @@ void StatusCast::loop() {
 	}
 
 	// Process any on-demand status requests
-	while (!_on_demand_queue.empty() && len < (msg.size() - 10)) { // Leave some buffer space
+	while (!_on_demand_queue.empty() && static_cast<size_t>(len) < (msg.size() - 10)) { // Leave some buffer space
 		status_t status = _on_demand_queue.front();
 		_on_demand_queue.pop();
 

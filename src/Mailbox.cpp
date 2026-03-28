@@ -1,4 +1,5 @@
 #include <Mailbox.hpp>
+#include <StatusCast.hpp>
 
 void Mailbox::init() {
 	_password[2] = _car.configAdminPass();
