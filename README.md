@@ -21,22 +21,29 @@ Note: A fully featured dedicated board exists for this project to easily convert
 
 ## Wiring
 
-| Wemos D1 mini GPIO | ESP8266 GPIO | Connected to             | Notes                                |
-|--------------------|--------------|--------------------------|--------------------------------------|
-| D0                 | 16           |                          | /!\ deep sleep                       |
-| D1                 | 5            | Steering Servo           | PPM (Pulse-position modulation)      |
-| D2                 | 4            | Throttle ESC             | PPM (Pulse-position modulation)      |
-| D3                 | 0            | Front headlights         | /!\ Boot mode (1: run / 0: flash)    |
-| D4                 | 2            | Back and top headlights⁰ | /!\ Must be high at boot (boot mode) |
-| D5                 | 14           | IR receiver              | TSOP3xx series                       |
-| D6                 | 12           | I²C devices¹             | I2C SDA                              |
-| D7                 | 13           | I²C devices¹             | I2C CLK                              |
-| D8                 | 15           | VTX                      | SmartAudio pin                       |
+Pin assignments match `src/CarBoard.cpp` and the default PlatformIO environment `pcb_v0_5` in `platformio.ini`.
 
- - [0] APA106 LEDs behind a level shifter (LVC1T45)
- - [1] I²C devices:
-   * Battery gauge (MAX17261) - Monitors battery voltage and state of charge
-   * IMU (LSM6DS3) - 6-axis inertial measurement unit with accelerometer and gyroscope
+Hardware UART0 is remapped with `Serial.swap()` so its pins appear on **D7/D8** instead of the **RX/TX** header. VTX SmartAudio uses **D8** as TX; the firmware inverts that UART TX line (`U0C0 |= BIT(UCTXI)`).
+
+| Wemos D1 mini Pro GPIO | ESP8266 GPIO | Connected to | Notes |
+|------------------------|--------------|--------------|-------|
+| TX | 1 | Debug serial TX | `SoftwareSerial` @ 76800 baud |
+| RX | 3 | Debug serial RX | `SoftwareSerial` @ 76800 baud |
+| D0 | 16 | Front headlights | PWM (`analogWrite`); /!\ cannot wake from deep sleep |
+| D1 | 5 | I²C devices¹ | I²C SCL (Arduino `Wire` default) |
+| D2 | 4 | I²C devices¹ | I²C SDA (Arduino `Wire` default) |
+| D3 | 0 | Steering servo | PPM; /!\ boot mode (1: run / 0: flash) |
+| D4 | 2 | Rear RGB LED (WS2812B)⁰ | NeoPixel via UART1 TX; /!\ must be high at boot |
+| D5 | 14 | Throttle ESC | PPM |
+| D6 | 12 | IR receiver | TSOP3xx series, RC6 decoded |
+| D7 | 13 | Hardware UART0 RX (after `Serial.swap`) | Unused by firmware |
+| D8 | 15 | VTX SmartAudio | Hardware UART0 TX after `Serial.swap`, signal inverted; /!\ must be low at boot |
+| A0 | ADC0 | Battery voltage | Raw `analogRead`; see also MAX17261 on I²C |
+
+ - [0] WS2812B RGB LED behind a level shifter (LVC1T45); driven through UART1 by NeoPixelBus (`NeoEsp8266Uart1800KbpsMethod`), single pixel (`length = 1` in `src/CarBoard.cpp`).
+ - [1] I²C devices on D1 (SCL) / D2 (SDA):
+   * Battery gauge (MAX17261) — Monitors battery voltage and state of charge
+   * IMU (LSM6DS3) — 6-axis inertial measurement unit with accelerometer and gyroscope
 
 ## Development environment
 
