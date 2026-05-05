@@ -128,6 +128,7 @@ class CarCtrl : public CarCtrlConfig, public CarCtrlPilot, public CarCtrlHeadlig
 	private:
 		// Reference to external StatusCast instance
 		StatusCast* _status_cast = nullptr;
+		bool _battery_empty = false;
 		
 	public:
 		void init();

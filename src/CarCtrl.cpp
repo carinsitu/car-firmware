@@ -35,13 +35,20 @@ void CarCtrl::init() {
 
 void CarCtrl::loop() {
 	unsigned long now = millis();
+	const int16_t soc = batterySOC();
+	if (!_battery_empty && soc >= 0 && soc == 0) {
+		_battery_empty = true;
+		start_engine(false);
+	}
 	if (blinks()) {
 		setHeadlightsPower(((now & 0x3FF) > 512) * 40000);
 	} else {
 		setHeadlightsPower(headlightsPower());
 	}
 
-	if ((now & 0xFF) < 128) {
+	if (_battery_empty) {
+		setRearColor((now & 0x3FF) > 512 ? color_t{255, 0, 0} : color_t{0, 0, 0});
+	} else if ((now & 0xFF) < 128) {
 		if (speed() < 0)
 			setRearColor({64, 64, 64});
 		else if (speed_down())
@@ -81,6 +88,7 @@ void CarCtrl::shutdown() {
 
 void CarCtrl::start_engine(bool on) {
 	if (_shutdown) return;
+	if (on && _battery_empty) return;
 	start_pilot(on);
 	setHeadlights(on ? 40000 : 0);
 }
