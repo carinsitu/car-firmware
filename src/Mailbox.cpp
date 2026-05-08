@@ -26,6 +26,8 @@ void Mailbox::readUdp() {
 	int len = _udp.read(packet.data(), packet.size());
 	if (len <= 0) return;
 	_cur_sender = _udp.remoteIP();
+	_cur_sender_port = _udp.remotePort();
+	_cur_source = Source::Udp;
 	processPacket(packet, len);
 }
 
@@ -34,6 +36,7 @@ void Mailbox::readTcp() {
 	int len = _tcp_link.read(packet.data(), packet.size());
 	if (len <= 0) return;
 	_cur_sender = _tcp_link.remoteIP();
+	_cur_source = Source::Tcp;
 	processPacket(packet, len);
 }
 
@@ -55,6 +58,7 @@ void Mailbox::processPacket(packet_t packet, uint8_t len) {
 		pass_lvl = (_password[0] == std::array<uint8_t, 6>{0, 0, 0, 0, 0, 0}) ? 1 : 0;
 	}
 
+	bool auth_failed = false;
 	while (_packet_head != packet_end) {
 		auto it = std::find_if(handlers.begin(), handlers.end(), [this](auto h) {
 			return h.id == *_packet_head;
@@ -66,10 +70,18 @@ void Mailbox::processPacket(packet_t packet, uint8_t len) {
 			_packet_head++;
 			std::invoke(it->handler, this);
 		} else {
+			auth_failed = true;
 			_car.log().printf("WARNING: Command 0x%02X rejected - Insufficient privilege (required: %d, provided: %d)\n",
 							  *_packet_head, it->min_lvl, pass_lvl);
 		}
 		_packet_head = packet_start + it->len + 1;
+	}
+
+	if (auth_failed && _cur_source == Source::Udp) {
+		static constexpr uint8_t kAuthFailedBeacon[] = {'C', 'I', 'S', 0xFF};
+		_udp.beginPacket(_cur_sender, _cur_sender_port);
+		_udp.write(kAuthFailedBeacon, sizeof(kAuthFailedBeacon));
+		_udp.endPacket();
 	}
 }
 

@@ -30,6 +30,8 @@ class Mailbox {
 
 		packet_t::iterator _packet_head;
 		IPAddress _cur_sender;
+		uint16_t _cur_sender_port = 0;
+		enum class Source : uint8_t { Udp, Tcp } _cur_source = Source::Udp;
 		bool msg_arg_bool();
 		uint8_t msg_arg_u8();
 		int16_t msg_arg_i16();
